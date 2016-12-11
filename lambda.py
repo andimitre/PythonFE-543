@@ -80,7 +80,7 @@ def get_currencies(intent, session):
         result = json.loads(data)
         dg_price.append(result['Data'][0]['Price'])
 
-    speech_output = "Your bitcoin price is currently at " + str(dg_price[0]) + " and your litecoin is currenty at " + str(dg_price[1])
+    speech_output = "Your Bitcoin price is at " + str(dg_price[0]) + " and your litecoin is at " + str(dg_price[1])
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
@@ -114,7 +114,7 @@ def send_text(intent, session):
     session_attributes = {}
     should_end_session = False
 
-    str_build = "Stocks: Comcast-" + str(stock_price[0]) + " Twitter-" + str(stock_price[1]) + "Digital Currencies: Bitcoin-" + str(dg_price[0]) + " Litecoin-" + str(dg_price[1])
+    str_build = "Stocks: Comcast-" + str(stock_price[0]) + " Twitter-" + str(stock_price[1]) + "\n Digital Currencies: Bitcoin-" + str(dg_price[0]) + " Litecoin-" + str(dg_price[1])
     accountid = config.api['twilio']['account_id']
     account_auth = config.api['twilio']['account_auth']
 
@@ -123,10 +123,10 @@ def send_text(intent, session):
     client.messages.create(
         to=config.api['to'],
         from_=config.api['from'],
-        body="Hello there!"
+        body=str_build
     )
 
-    speech_output = "Sent a text with summary to your phone"
+    speech_output = "\n Sent a text with summary to your phone"
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
