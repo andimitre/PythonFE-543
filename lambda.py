@@ -1,10 +1,11 @@
 from __future__ import print_function
 from urllib2 import urlopen
 import json
+from twilio.rest import TwilioRestClient
+import config
 
-
-
-# --------------- Helpers that build all of the responses ----------------------
+stock_price = []
+dg_price = []
 
 def build_speechlet_response(title, output, reprompt_text, should_end_session):
     return {
@@ -44,14 +45,13 @@ def get_welcome_response():
 
     session_attributes = {}
     card_title = "Welcome"
-    speech_output = "Good Morning Andi " \
-                    # "Please ask me for stock and digital currency prices by saying, " \
-                    # "stock status, or digital currencies status"
+    speech_output = "Good Morning Andi "
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
     reprompt_text = "Please ask me for stock and digital currency prices by saying " \
                     "stock status, or digital currencies status."
     should_end_session = False
+
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
 
@@ -73,14 +73,14 @@ def get_currencies(intent, session):
     session_attributes = {}
     should_end_session = False
     currency_list = ["BTC","LTC"]
-    price = []
+
     for elem in currency_list:
         link = 'https://www.cryptocompare.com/api/data/price?fsym=' + elem + '&tsyms=USD'
         data = urlopen(link).read().decode('ascii')
         result = json.loads(data)
-        price.append(result['Data'][0]['Price'])
+        dg_price.append(result['Data'][0]['Price'])
 
-    speech_output = "Your bitcoin price is currently at " + str(price[0]) + " and your litecoin is currenty at " + str(price[1])
+    speech_output = "Your bitcoin price is currently at " + str(dg_price[0]) + " and your litecoin is currenty at " + str(dg_price[1])
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
@@ -94,14 +94,39 @@ def get_stocks(intent, session):
     session_attributes = {}
     should_end_session = False
     stock_list = ['CMCSA', 'TWTR']
-    price = []
+
     for elem in stock_list:
-        link = "https://www.quandl.com/api/v3/datasets/WIKI/" + elem + ".json?api_key="
+        link = "https://www.quandl.com/api/v3/datasets/WIKI/" + elem + ".json?api_key=" + config.api['quandl']
         data = urlopen(link).read().decode('ascii')
         result = json.loads(data)
-        price.append(result['dataset']['data'][0][4])
+        stock_price.append(result['dataset']['data'][0][4])
 
-    speech_output = "Your Comcast stock price is at " + str(price[0]) + " and your twitter is at " + str(price[1])
+    speech_output = "Your Comcast stock price is at " + str(stock_price[0]) + " and your twitter is at " + str(stock_price[1])
+    reprompt_text = ""
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))
+
+def send_text(intent, session):
+    """ Sends a recap via text message """
+
+    card_title = intent['name']
+    session_attributes = {}
+    should_end_session = False
+
+    str_build = "Stocks: Comcast-" + str(stock_price[0]) + " Twitter-" + str(stock_price[1]) + "Digital Currencies: Bitcoin-" + str(dg_price[0]) + " Litecoin-" + str(dg_price[1])
+    accountid = config.api['twilio']['account_id']
+    account_auth = config.api['twilio']['account_auth']
+
+    client = TwilioRestClient(accountid, account_auth)
+
+    client.messages.create(
+        to=config.api['to'],
+        from_=config.api['from'],
+        body="Hello there!"
+    )
+
+    speech_output = "Sent a text with summary to your phone"
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
@@ -141,6 +166,8 @@ def on_intent(intent_request, session):
         return get_currencies(intent, session)
     elif intent_name == "GetStocks":
         return get_stocks(intent, session)
+    elif intent_name == "SendText":
+        return send_text(intent, session)
     elif intent_name == "AMAZON.HelpIntent":
         return get_welcome_response()
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
