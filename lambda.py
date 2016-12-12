@@ -80,7 +80,7 @@ def get_currencies(intent, session):
         result = json.loads(data)
         dg_price.append(result['Data'][0]['Price'])
 
-    speech_output = "Your Bitcoin price is at " + str(dg_price[0]) + " and your litecoin is at " + str(dg_price[1])
+    speech_output = "Your bitcoin price is currently at " + str(dg_price[0]) + " and your litecoin is currenty at " + str(dg_price[1])
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
@@ -95,13 +95,19 @@ def get_stocks(intent, session):
     should_end_session = False
     stock_list = ['CMCSA', 'TWTR']
 
+    # for elem in stock_list:
+    #     link = "https://www.quandl.com/api/v3/datasets/WIKI/" + elem + ".json?api_key=" + config.api['quandl']
+    #     data = urlopen(link).read().decode('ascii')
+    #     result = json.loads(data)
+    #     stock_price.append(result['dataset']['data'][0][4])
+
     for elem in stock_list:
-        link = "https://www.quandl.com/api/v3/datasets/WIKI/" + elem + ".json?api_key=" + config.api['quandl']
+        link = "http://dev.markitondemand.com/Api/v2/Quote/json?symbol=" + elem
         data = urlopen(link).read().decode('ascii')
         result = json.loads(data)
-        stock_price.append(result['dataset']['data'][0][4])
+        stock_price.append(result['LastPrice'])
 
-    speech_output = "Your Comcast stock price is at " + str(stock_price[0]) + " and your twitter stock is at " + str(stock_price[1])
+    speech_output = "Your Comcast stock price is at " + str(stock_price[0]) + " and your twitter is at " + str(stock_price[1])
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
@@ -114,7 +120,7 @@ def send_text(intent, session):
     session_attributes = {}
     should_end_session = False
 
-    str_build = "Stocks: Comcast-" + str(stock_price[0]) + " Twitter-" + str(stock_price[1]) + " Digital Currencies: Bitcoin-" + str(dg_price[0]) + " Litecoin-" + str(dg_price[1])
+    str_build = "Stocks: Comcast-" + str(stock_price[0]) + " Twitter-" + str(stock_price[1]) + "Digital Currencies: Bitcoin-" + str(dg_price[0]) + " Litecoin-" + str(dg_price[1])
     accountid = config.api['twilio']['account_id']
     account_auth = config.api['twilio']['account_auth']
 
@@ -126,7 +132,7 @@ def send_text(intent, session):
         body=str_build
     )
 
-    speech_output = " Sent a text with summary to your phone"
+    speech_output = "Sent a text with summary to your phone"
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
