@@ -101,7 +101,7 @@ def get_stocks(intent, session):
         result = json.loads(data)
         stock_price.append(result['dataset']['data'][0][4])
 
-    speech_output = "Your Comcast stock price is at " + str(stock_price[0]) + " and your twitter is at " + str(stock_price[1])
+    speech_output = "Your Comcast stock price is at " + str(stock_price[0]) + " and your twitter stock is at " + str(stock_price[1])
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
