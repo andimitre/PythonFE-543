@@ -45,7 +45,7 @@ def get_welcome_response():
 
     session_attributes = {}
     card_title = "Welcome"
-    speech_output = "Good Morning Andi "
+    speech_output = "Hi Andi "
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
     reprompt_text = "Please ask me for stock and digital currency prices by saying " \
@@ -58,8 +58,7 @@ def get_welcome_response():
 
 def handle_session_end_request():
     card_title = "Session Ended"
-    speech_output = "Thank you for trying Andi's good morning skill. " \
-                    "Good day! "
+    speech_output = "Good day! "
     # Setting this to true ends the session and exits the skill.
     should_end_session = True
     return build_response({}, build_speechlet_response(
@@ -139,6 +138,18 @@ def send_text(intent, session):
         card_title, speech_output, reprompt_text, should_end_session))
 
 
+def final(intent, session):
+    """ Sends a recap via text message """
+
+    card_title = intent['name']
+    session_attributes = {}
+    should_end_session = True
+
+    speech_output = "You are welcome. Good Day"
+    reprompt_text = ""
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))
 # --------------- Events ------------------
 
 def on_session_started(session_started_request, session):
@@ -174,6 +185,8 @@ def on_intent(intent_request, session):
         return get_stocks(intent, session)
     elif intent_name == "SendText":
         return send_text(intent, session)
+    elif intent_name == "GoodBye":
+        return final(intent, session)
     elif intent_name == "AMAZON.HelpIntent":
         return get_welcome_response()
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
