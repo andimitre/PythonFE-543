@@ -3,9 +3,10 @@ from urllib2 import urlopen
 import json
 from twilio.rest import TwilioRestClient
 import config
-
+import datetime
 stock_price = []
 dg_price = []
+commute_time = []
 
 def build_speechlet_response(title, output, reprompt_text, should_end_session):
     return {
@@ -36,18 +37,21 @@ def build_response(session_attributes, speechlet_response):
     }
 
 
-# --------------- Functions that control the skill's behavior ------------------
-
 def get_welcome_response():
     """ If we wanted to initialize the session to have some attributes we could
     add those here
     """
+    now = datetime.datetime.now() - datetime.timedelta(hours=5)
+    time = now.strftime("%A %B %-d %-I %-M %p ") + "."
 
+    link = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=90+Athenia+Avenue+Clifton+NJ&destinations=30+Rockefeller+Plaza+New+York+City,NY&key=AIzaSyCqyIGKoZEF0_gY2kmEjqLwC4Qz7sALOTI"
+    data = urlopen(link).read().decode('ascii')
+    result = json.loads(data)
+    commute_time.append(result['rows'][0]['elements'][0]['duration']['text'])
     session_attributes = {}
     card_title = "Welcome"
-    speech_output = "Hi Andi "
-    # If the user either does not reply to the welcome message or says something
-    # that is not understood, they will be prompted again with this text.
+
+    speech_output = "Hi Andi. It is" + str(time) + ". Today your commute to work is approximately " + str(commute_time[0])
     reprompt_text = "Please ask me for stock and digital currency prices by saying " \
                     "stock status, or digital currencies status."
     should_end_session = False
@@ -59,11 +63,9 @@ def get_welcome_response():
 def handle_session_end_request():
     card_title = "Session Ended"
     speech_output = "Good day! "
-    # Setting this to true ends the session and exits the skill.
     should_end_session = True
     return build_response({}, build_speechlet_response(
         card_title, speech_output, None, should_end_session))
-
 
 def get_currencies(intent, session):
     """ Gets the price per currency """
@@ -106,7 +108,7 @@ def get_stocks(intent, session):
         result = json.loads(data)
         stock_price.append(result['LastPrice'])
 
-    speech_output = "Your Comcast stock price is at " + str(stock_price[0]) + " and your twitter is at " + str(stock_price[1])
+    speech_output = "Your Comcast stock is currently priced at " + str(stock_price[0]) + " and your Twitter stock is currently at " + str(stock_price[1])
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
@@ -131,12 +133,55 @@ def send_text(intent, session):
         body=str_build
     )
 
-    speech_output = "Sent a text with summary to your phone"
+    speech_output = "A message has been sent to your phone, sir"
     reprompt_text = ""
 
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
 
+def get_weather(intent, session):
+    """ Gets weather data """
+
+    card_title = intent['name']
+    session_attributes = {}
+    should_end_session = False
+
+    str_build = ""
+    appid = config.api['weather']
+    link = "http://api.openweathermap.org/data/2.5/weather?q=NewYork&APPID=" + appid
+    data = urlopen(link).read().decode('ascii')
+    result = json.loads(data)
+    status = result['weather'][0]['description'].replace('intensity')
+
+    if status.find('drizzle') or status.find('rain'):
+        str_build = "Yes, there will be " + str(status) + " in New York city today"
+    else:
+        str_build = "No, there won't be any rain in New York city today"
+    speech_output = str_build
+    reprompt_text = ""
+
+    return build_response(session_attributes, build_speechlet_response(
+        card_title, speech_output, reprompt_text, should_end_session))
+
+def play_music(intent, session):
+    return {
+        "response": {
+            "directives": [
+                {
+                    "type": "AudioPlayer.Play",
+                    "playBehavior": "REPLACE_ALL",
+                    "audioItem": {
+                        "stream": {
+                            "token": "12345",
+                            "url": "https://s3.amazonaws.com/alexa-music-files/ledri.mp3",
+                            "offsetInMilliseconds": 0
+                        }
+                    }
+                }
+            ],
+            "shouldEndSession": True
+        }
+    }
 
 def final(intent, session):
     """ Sends a recap via text message """
@@ -150,7 +195,6 @@ def final(intent, session):
 
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
-# --------------- Events ------------------
 
 def on_session_started(session_started_request, session):
     """ Called when the session starts """
@@ -165,7 +209,6 @@ def on_launch(launch_request, session):
 
     print("on_launch requestId=" + launch_request['requestId'] +
           ", sessionId=" + session['sessionId'])
-    # Dispatch to your skill's launch
     return get_welcome_response()
 
 
@@ -183,6 +226,10 @@ def on_intent(intent_request, session):
         return get_currencies(intent, session)
     elif intent_name == "GetStocks":
         return get_stocks(intent, session)
+    elif intent_name == "Weather":
+        return get_weather(intent, session)
+    elif intent_name == "PlayMusic":
+        return play_music(intent, session)
     elif intent_name == "SendText":
         return send_text(intent, session)
     elif intent_name == "GoodBye":
@@ -202,8 +249,6 @@ def on_session_ended(session_ended_request, session):
     """
     print("on_session_ended requestId=" + session_ended_request['requestId'] +
           ", sessionId=" + session['sessionId'])
-    # add cleanup logic here
-
 
 # --------------- Main handler ------------------
 
