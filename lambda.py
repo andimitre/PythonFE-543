@@ -151,7 +151,8 @@ def get_weather(intent, session):
     link = "http://api.openweathermap.org/data/2.5/weather?q=NewYork&APPID=" + appid
     data = urlopen(link).read().decode('ascii')
     result = json.loads(data)
-    status = result['weather'][0]['description'].replace('intensity')
+    status = result['weather'][0]['description'].replace('intensity', "")
+    
 
     if status.find('drizzle') or status.find('rain'):
         str_build = "Yes, there will be " + str(status) + " in New York city today"
